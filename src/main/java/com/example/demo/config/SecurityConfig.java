@@ -22,12 +22,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // H2 console needs these two lines
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users", "/api/users/**", "/api/**").permitAll()
+                        // ✅ Correct matcher syntax
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/api/users/**", "/api/**").permitAll()
                         .anyRequest().authenticated()
                 )
+
+                // Optional for your API endpoints
                 .httpBasic();
+
         return http.build();
     }
 
