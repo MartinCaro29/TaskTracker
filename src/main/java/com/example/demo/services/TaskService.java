@@ -23,13 +23,32 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
+
 
     public TaskService(TaskRepository taskRepository,
                        ProjectRepository projectRepository,
-                       UserRepository userRepository) {
+                       UserRepository userRepository,
+                       EmailService emailService) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
+    }
+
+    private void sendTaskEmail(Task task, User assignee){
+        emailService.sendEmail(
+                assignee.getEmail(),
+                "New Task Assigned: " + task.getTitle(),
+                "Hello " + assignee.getUsername() + ",\n\n" +
+                        "You have been assigned a new task:\n\n" +
+                        "• Title: " + task.getTitle() + "\n" +
+                        "• Description: " + task.getDescription() + "\n" +
+                        "• Status: " + task.getStatus() + "\n" +
+                        "• Priority: " + task.getPriority() + "\n" +
+                        "• Due Date: " + task.getDueDate() + "\n\n" +
+                        "Regards,\nTask Manager System"
+        );
     }
 
     public TaskDto createTask(TaskDto dto) {
@@ -49,6 +68,9 @@ public class TaskService {
         task.setAssignee(assignee);
 
         taskRepository.save(task);
+
+        sendTaskEmail(task, assignee);
+
         return convertToDto(task);
     }
 
@@ -65,8 +87,10 @@ public class TaskService {
     }
 
     public TaskDto updateTask(Long id, TaskDto dto) {
+        User assignee = null;
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+
 
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
@@ -75,12 +99,14 @@ public class TaskService {
         task.setDueDate(dto.getDueDate());
 
         if (dto.getAssigneeId() != null) {
-            User assignee = userRepository.findById(dto.getAssigneeId())
+            assignee = userRepository.findById(dto.getAssigneeId())
                     .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
             task.setAssignee(assignee);
         }
 
         Task updated = taskRepository.save(task);
+        if(assignee != null) sendTaskEmail(task, assignee);
+
         return convertToDto(updated);
     }
 

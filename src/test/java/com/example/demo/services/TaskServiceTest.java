@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -32,6 +33,9 @@ class TaskServiceTest {
     private UserRepository userRepository;
     @Mock
     private ProjectRepository projectRepository;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private TaskService taskService;

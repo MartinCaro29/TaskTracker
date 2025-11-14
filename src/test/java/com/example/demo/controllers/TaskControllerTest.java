@@ -7,12 +7,14 @@ import com.example.demo.entities.Task;
 import com.example.demo.entities.User;
 import com.example.demo.repositories.ProjectRepository;
 import com.example.demo.repositories.UserRepository;
+import com.example.demo.services.EmailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,6 +43,9 @@ public class TaskControllerTest {
 
     @Autowired
     private ObjectMapper mapper;
+
+    @MockBean
+    private EmailService emailService;
 
     private Long assigneeId;
     private Long projectId;
