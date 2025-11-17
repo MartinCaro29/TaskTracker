@@ -1,10 +1,12 @@
 package com.example.demo.services;
 
 import com.example.demo.dtos.ProjectDto;
+import com.example.demo.entities.AuditLog;
 import com.example.demo.entities.Project;
 import com.example.demo.entities.User;
 import com.example.demo.exceptions.ProjectNotFoundException;
 import com.example.demo.exceptions.UserNotFoundException;
+import com.example.demo.repositories.AuditLogRepository;
 import com.example.demo.repositories.ProjectRepository;
 import com.example.demo.repositories.UserRepository;
 import org.springframework.data.domain.Page;
@@ -17,10 +19,12 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
 
-    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository) {
+    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository, AuditLogRepository auditLogRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     public Page<ProjectDto> getAllProjects(int page, int size) {
@@ -45,6 +49,12 @@ public class ProjectService {
         project.setOwner(owner);
 
         projectRepository.save(project);
+
+        Long projectId = project.getId();
+
+        AuditLog auditLog = createLog(projectId, AuditLog.Action.CREATE);
+        auditLogRepository.save(auditLog);
+
         return convertToDto(project);
     }
 
@@ -56,6 +66,11 @@ public class ProjectService {
         existing.setDescription(dto.getDescription());
         Project updated = projectRepository.save(existing);
 
+        Long projectId = existing.getId();
+
+        AuditLog auditLog = createLog(projectId, AuditLog.Action.UPDATE);
+        auditLogRepository.save(auditLog);
+
         return convertToDto(updated);
     }
 
@@ -64,6 +79,9 @@ public class ProjectService {
             throw new ProjectNotFoundException("Project not found with id: " + id);
         }
         projectRepository.deleteById(id);
+
+        AuditLog auditLog = createLog(id, AuditLog.Action.DELETE);
+        auditLogRepository.save(auditLog);
     }
 
     private ProjectDto convertToDto(Project project) {
@@ -81,6 +99,15 @@ public class ProjectService {
         dto.setCreatedAt(project.getCreatedAt());
         dto.setOwnerId(ownerId);
         return dto;
+    }
+
+    private AuditLog createLog(Long entityId, AuditLog.Action action){
+        AuditLog auditLog = new AuditLog();
+        auditLog.setEntityId(entityId);
+        auditLog.setEntityType(AuditLog.EntityType.PROJECT);
+        auditLog.setAction(action);
+
+        return auditLog;
     }
 
 }

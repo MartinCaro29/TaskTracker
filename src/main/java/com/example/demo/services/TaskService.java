@@ -1,12 +1,14 @@
 package com.example.demo.services;
 
 import com.example.demo.dtos.TaskDto;
+import com.example.demo.entities.AuditLog;
 import com.example.demo.entities.Project;
 import com.example.demo.entities.Task;
 import com.example.demo.entities.User;
 import com.example.demo.exceptions.ProjectNotFoundException;
 import com.example.demo.exceptions.TaskNotFoundException;
 import com.example.demo.exceptions.UserNotFoundException;
+import com.example.demo.repositories.AuditLogRepository;
 import com.example.demo.repositories.ProjectRepository;
 import com.example.demo.repositories.TaskRepository;
 import com.example.demo.repositories.UserRepository;
@@ -24,16 +26,18 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
-
+    private final AuditLogRepository auditLogRepository;
 
     public TaskService(TaskRepository taskRepository,
                        ProjectRepository projectRepository,
                        UserRepository userRepository,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       AuditLogRepository auditLogRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.auditLogRepository = auditLogRepository;
     }
 
     private void sendTaskEmail(Task task, User assignee){
@@ -68,6 +72,10 @@ public class TaskService {
         task.setAssignee(assignee);
 
         taskRepository.save(task);
+
+        Long id = task.getId();
+        AuditLog auditLog = createLog(id, AuditLog.Action.CREATE);
+        auditLogRepository.save(auditLog);
 
         sendTaskEmail(task, assignee);
 
@@ -105,6 +113,10 @@ public class TaskService {
         }
 
         Task updated = taskRepository.save(task);
+
+        AuditLog auditLog = createLog(id, AuditLog.Action.UPDATE);
+        auditLogRepository.save(auditLog);
+
         if(assignee != null) sendTaskEmail(task, assignee);
 
         return convertToDto(updated);
@@ -115,6 +127,9 @@ public class TaskService {
             throw new TaskNotFoundException("Task not found with id: " + id);
         }
         taskRepository.deleteById(id);
+
+        AuditLog auditLog = createLog(id, AuditLog.Action.DELETE);
+        auditLogRepository.save(auditLog);
     }
 
     public List<TaskDto> getTasksByUser(Long userId) {
@@ -138,5 +153,14 @@ public class TaskService {
                 task.getProject().getId(),
                 task.getAssignee() != null ? task.getAssignee().getId() : null
         );
+    }
+
+    private AuditLog createLog(Long entityId, AuditLog.Action action){
+        AuditLog auditLog = new AuditLog();
+        auditLog.setEntityId(entityId);
+        auditLog.setEntityType(AuditLog.EntityType.TASK);
+        auditLog.setAction(action);
+
+        return auditLog;
     }
 }

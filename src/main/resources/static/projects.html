@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - Task Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <h1 class="logo">📋 Task Tracker</h1>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="users.html">Users</a></li>
+            <li><a href="projects.html" class="active">Projects</a></li>
+            <li><a href="tasks.html">Tasks</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <div id="alertContainer"></div>
+
+    <div class="card">
+        <h2>Projects Management</h2>
+        <button class="btn btn-primary" onclick="showCreateForm()">+ Create New Project</button>
+    </div>
+
+    <!-- Create/Edit Project Form -->
+    <div id="projectForm" class="card" style="display: none; margin-top: 20px;">
+        <h3 id="formTitle">Create New Project</h3>
+        <form onsubmit="saveProject(event)">
+            <input type="hidden" id="projectId">
+            <div class="form-group">
+                <label>Project Name *</label>
+                <input type="text" id="projectName" required minlength="3" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="projectDescription"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Owner (User ID) *</label>
+                <select id="ownerId" required>
+                    <option value="">Select a user</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Save Project</button>
+            <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+        </form>
+    </div>
+
+    <!-- Projects List -->
+    <div id="projectsList" style="margin-top: 20px;">
+        <div class="loading">Loading projects...</div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="pagination"></div>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api';
+    let currentPage = 0;
+    let editingProjectId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProjects();
+        loadUsers();
+    });
+
+    async function loadUsers() {
+        try {
+            const response = await axios.get(`${API_BASE}/users`, {
+                params: { page: 0, size: 100 }
+            });
+
+            const select = document.getElementById('ownerId');
+            select.innerHTML = '<option value="">Select a user</option>' +
+                response.data.content.map(user =>
+                    `<option value="${user.id}">${user.username} (ID: ${user.id})</option>`
+                ).join('');
+        } catch (error) {
+            console.error('Failed to load users:', error);
+        }
+    }
+
+    async function loadProjects(page = 0) {
+        try {
+            const response = await axios.get(`${API_BASE}/projects`, {
+                params: { page, size: 10 }
+            });
+
+            const data = response.data;
+            const projectsList = document.getElementById('projectsList');
+
+            if (data.content.length === 0) {
+                projectsList.innerHTML = '<div class="empty-state"><h3>No projects found</h3><p>Create your first project to get started</p></div>';
+                return;
+            }
+
+            projectsList.innerHTML = data.content.map(project => `
+                <div class="list-item">
+                    <h3>${project.name}</h3>
+                    <p>${project.description || 'No description'}</p>
+                    <p><strong>Owner ID:</strong> ${project.ownerId}</p>
+                    <div class="list-item-actions">
+                        <button class="btn btn-secondary" onclick="editProject(${project.id})">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteProject(${project.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            renderPagination(data);
+            currentPage = page;
+        } catch (error) {
+            showAlert('Failed to load projects: ' + error.message, 'error');
+        }
+    }
+
+    function showCreateForm() {
+        document.getElementById('formTitle').textContent = 'Create New Project';
+        document.getElementById('projectId').value = '';
+        document.getElementById('projectName').value = '';
+        document.getElementById('projectDescription').value = '';
+        document.getElementById('ownerId').value = '';
+        editingProjectId = null;
+        document.getElementById('projectForm').style.display = 'block';
+    }
+
+    function hideForm() {
+        document.getElementById('projectForm').style.display = 'none';
+    }
+
+    async function editProject(id) {
+        try {
+            const response = await axios.get(`${API_BASE}/projects/${id}`);
+            const project = response.data;
+
+            document.getElementById('formTitle').textContent = 'Edit Project';
+            document.getElementById('projectId').value = project.id;
+            document.getElementById('projectName').value = project.name;
+            document.getElementById('projectDescription').value = project.description || '';
+            document.getElementById('ownerId').value = project.ownerId;
+            editingProjectId = id;
+            document.getElementById('projectForm').style.display = 'block';
+        } catch (error) {
+            showAlert('Failed to load project: ' + error.message, 'error');
+        }
+    }
+
+    async function saveProject(event) {
+        event.preventDefault();
+
+        const projectData = {
+            name: document.getElementById('projectName').value,
+            description: document.getElementById('projectDescription').value,
+            ownerId: parseInt(document.getElementById('ownerId').value)
+        };
+
+        try {
+            if (editingProjectId) {
+                await axios.put(`${API_BASE}/projects/${editingProjectId}`, projectData);
+                showAlert('Project updated successfully!');
+            } else {
+                await axios.post(`${API_BASE}/projects`, projectData);
+                showAlert('Project created successfully!');
+            }
+
+            hideForm();
+            loadProjects(currentPage);
+        } catch (error) {
+            showAlert('Failed to save project: ' + (error.response?.data?.message || error.message), 'error');
+        }
+    }
+
+    async function deleteProject(id) {
+        if (!confirm('Are you sure you want to delete this project?')) {
+            return;
+        }
+
+        try {
+            await axios.delete(`${API_BASE}/projects/${id}`);
+            showAlert('Project deleted successfully!');
+            loadProjects(currentPage);
+        } catch (error) {
+            showAlert('Failed to delete project: ' + (error.response?.data?.message || error.message), 'error');
+        }
+    }
+
+    function renderPagination(data) {
+        const pagination = document.getElementById('pagination');
+        if (data.totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        if (data.number > 0) {
+            html += `<button class="btn btn-secondary" onclick="loadProjects(${data.number - 1})">Previous</button>`;
+        }
+
+        html += `<span style="padding: 10px;">Page ${data.number + 1} of ${data.totalPages}</span>`;
+
+        if (data.number < data.totalPages - 1) {
+            html += `<button class="btn btn-secondary" onclick="loadProjects(${data.number + 1})">Next</button>`;
+        }
+
+        pagination.innerHTML = html;
+    }
+
+    function showAlert(message, type = 'success') {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alertContainer.appendChild(alert);
+
+        setTimeout(() => alert.remove(), 5000);
+    }
+</script>
+</body>
+</html>

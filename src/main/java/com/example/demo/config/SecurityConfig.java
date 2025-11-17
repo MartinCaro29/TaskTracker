@@ -4,6 +4,7 @@ import com.example.demo.services.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,20 +22,40 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
-                // H2 console needs these two lines
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
 
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ Correct matcher syntax
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/users/**", "/api/**").permitAll()
+                        .requestMatchers(
+                                "/login.html",
+                                "/register.html",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/favicon.ico",
+                                "/h2-console/**",
+                                "/api/**"
+                        ).permitAll()
+                        .requestMatchers("/api/users/**").authenticated() // protect these!
                         .anyRequest().authenticated()
                 )
 
-                // Optional for your API endpoints
-                .httpBasic();
+                // ➜ LOGIN FORM
+                .formLogin(form -> form
+                        .loginPage("/login.html")
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/index.html", true)
+                        .failureUrl("/login.html?error=true")
+                        .permitAll()
+                )
+
+                // ➜ DISABLE BASIC AUTH COMPLETELY to stop popup
+                .httpBasic(h -> h.disable())
+
+                // ➜ DISABLE LOGOUT (you said you don’t want logout)
+                .logout(logout -> logout.disable());
 
         return http.build();
     }
@@ -49,3 +70,4 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 }
+
