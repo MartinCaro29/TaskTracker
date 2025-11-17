@@ -1,146 +1,65 @@
+<!-- login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #eef2ff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            width: 360px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 8px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            margin-top: 12px;
-            cursor: pointer;
-            font-size: 15px;
-        }
-        .msg {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
+        body { font-family: Arial, sans-serif; background: #eef2ff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 24px; border-radius: 12px; width: 360px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid #ccc; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; margin-top: 12px; cursor: pointer; font-size: 15px; }
+        .msg { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 14px; }
         .error { background: #fee2e2; color: #b91c1c; }
         .success { background: #dcfce7; color: #166534; }
     </style>
 </head>
 <body>
-
 <div class="card">
     <h2>Login</h2>
-    <form method="post" action="/login">
+
+    <!-- IMPORTANT: real Spring Boot login form -->
+    <form method="POST" action="/login">
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Login</button>
+    </form>
 
+    <!-- Spring Security adds '?error' automatically -->
+    <div id="loginMsg">
+        <script>
+            // Show message if Spring redirected to ?error
+            if (window.location.search.includes("error")) {
+                document.getElementById("loginMsg").innerHTML =
+                    "<div class='msg error'>Invalid username or password.</div>";
+            }
+        </script>
+    </div>
 
-
-    <div id="loginMsg"></div>
-</form>
     <hr style="margin:20px 0">
-
-    <h2>Register</h2>
-    <input type="text" id="regUsername" placeholder="New Username">
-    <input type="email" id="regEmail" placeholder="Email">
-    <input type="password" id="regPassword" placeholder="Password">
-    <button onclick="register()">Register</button>
-
-    <div id="regMsg"></div>
+    <a href="register.html">Go to Register</a>
 </div>
-
 <script>
-    const API_BASE = "/api";   // adjust if needed
-
-    // ------------ LOGIN (Basic Auth) -----------------
+    const API_BASE = "/api";
     async function login() {
         const username = document.getElementById("username").value.trim();
         const password = document.getElementById("password").value.trim();
         const msg = document.getElementById("loginMsg");
-
         msg.innerHTML = "";
-
         if (!username || !password) {
             msg.innerHTML = "<div class='msg error'>Please fill all fields.</div>";
             return;
         }
-
-        // Create Basic Auth header
         const authHeader = "Basic " + btoa(username + ":" + password);
-
         try {
-            // Call a PROTECTED endpoint to verify credentials
-            const response = await axios.get(`${API_BASE}/users`, {
-                headers: { Authorization: authHeader }
-            });
-
-            // Save token for later requests
+            await axios.get(`${API_BASE}/users`, { headers: { Authorization: authHeader } });
             localStorage.setItem("authToken", authHeader);
-
             msg.innerHTML = "<div class='msg success'>Login successful!</div>";
-
-            // redirect somewhere
-            // window.location.href = "dashboard.html";
-
         } catch (error) {
             msg.innerHTML = "<div class='msg error'>Invalid username or password.</div>";
         }
     }
-
-    // ------------ REGISTER -----------------
-    async function register() {
-        const username = document.getElementById("regUsername").value.trim();
-        const email = document.getElementById("regEmail").value.trim();
-        const password = document.getElementById("regPassword").value.trim();
-        const msg = document.getElementById("regMsg");
-
-        msg.innerHTML = "";
-
-        if (!username || !email || !password) {
-            msg.innerHTML = "<div class='msg error'>Please fill all fields.</div>";
-            return;
-        }
-
-        try {
-            await axios.post(`${API_BASE}/users`, {
-                username,
-                email,
-                password
-            });
-
-            msg.innerHTML = "<div class='msg success'>Account created! Now you can log in.</div>";
-
-        } catch (err) {
-            msg.innerHTML = "<div class='msg error'>Error: " + err.response?.data?.message + "</div>";
-        }
-    }
 </script>
-
 </body>
 </html>

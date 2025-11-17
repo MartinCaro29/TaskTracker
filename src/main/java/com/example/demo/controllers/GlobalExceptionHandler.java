@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         errors.put("errors", ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .map(err -> err.getDefaultMessage())
                 .toList());
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
