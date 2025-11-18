@@ -23,9 +23,9 @@ public interface TaskRepository extends JpaRepository<Task,Long> {
 
 
     @Query("SELECT t FROM Task t WHERE t.assignee = :assignee")
-    List<Task> findByAssignee(@Param("assignee") User assignee);
+    Page<Task> findByAssignee(@Param("assignee") User assignee, Pageable pageable);
 
 
     @Query("SELECT t FROM Task t WHERE t.dueDate = CURRENT_DATE")
-    List<Task> findTasksDueToday();
+    Page<Task> findTasksDueToday(Pageable pageable);
 }

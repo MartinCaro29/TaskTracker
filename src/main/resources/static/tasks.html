@@ -29,28 +29,58 @@
     </div>
 
     <!-- Filter Bar -->
-    <div class="filter-bar">
-        <div class="form-group">
-            <label>Filter by Project</label>
-            <select id="projectFilter" onchange="loadTasksByProject()">
-                <option value="">Select a project</option>
-            </select>
+    <div class="filters">
+
+        <!-- Group 1: PROJECT + STATUS -->
+        <div class="filter-group card">
+            <h3>Filter by Project & Status</h3>
+
+            <div class="form-group">
+                <label>Project</label>
+                <select id="projectFilter">
+                    <option value="">Select a project</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select id="statusFilter">
+                    <option value="">All Statuses</option>
+                    <option value="TODO">To Do</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="applyProjectStatusFilter()">Search</button>
         </div>
-        <div class="form-group">
-            <label>Filter by Status</label>
-            <select id="statusFilter" onchange="loadTasksByProject()">
-                <option value="">All Statuses</option>
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-            </select>
+
+
+        <!-- Group 2: USER FILTER -->
+        <div class="filter-group card">
+            <h3>Filter by User</h3>
+
+            <div class="form-group">
+                <label>User</label>
+                <select id="userFilter">
+                    <option value="">Select a user</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="applyUserFilter()">Filter</button>
         </div>
-        <div class="form-group">
-            <label>Filter by User</label>
-            <select id="userFilter" onchange="loadTasksByUser()">
-                <option value="">Select a user</option>
-            </select>
+
+
+        <!-- Group 3: DUE TODAY -->
+        <div class="filter-group card">
+            <h3>Due Today</h3>
+
+            <label>
+                <input type="checkbox" id="dueTodayFilter" onchange="toggleDueToday()">
+                Show tasks due today
+            </label>
         </div>
+
     </div>
 
     <!-- Create/Edit Task Form -->
@@ -127,6 +157,56 @@
         loadUsers();
     });
 
+    document.addEventListener("click", e => {
+    if (e.target.matches(".delete-btn")) {
+        const id = e.target.dataset.id;
+        deleteTask(id);
+    }
+});
+
+    document.addEventListener("click", e => {
+        if (e.target.matches(".edit-btn")) {
+            const id = e.target.dataset.id;
+            editTask(id);
+        }
+    });
+
+function applyProjectStatusFilter() {
+    const project = document.getElementById("projectFilter").value;
+
+    // Clear the other filters
+    document.getElementById("userFilter").value = "";
+    document.getElementById("dueTodayFilter").checked = false;
+
+    if (!project) {
+        document.getElementById("tasksList").innerHTML = `
+            <div class="empty-state">
+                <h3>No project selected</h3>
+                <p>Please select a project</p>
+            </div>`;
+        return;
+    }
+
+    loadTasksByProject(0);
+}
+
+
+function applyUserFilter() {
+    const user = document.getElementById("userFilter").value;
+
+    // Clear other filters
+    document.getElementById("projectFilter").value = "";
+    document.getElementById("statusFilter").value = "";
+    document.getElementById("dueTodayFilter").checked = false;
+
+    if (!user) {
+        showAlert("Please select a user", "error");
+        return;
+    }
+
+    loadTasksByUser();
+}
+
     async function loadProjects() {
         try {
             const response = await axios.get(`${API_BASE}/projects`, {
@@ -195,7 +275,7 @@
             const response = await axios.get(`${API_BASE}/projects/${projectId}/tasks`, { params });
             displayTasks(response.data, page);
         } catch (error) {
-            showAlert('Failed to load tasks: ' + error.message, 'error');
+            showAlert('Failed to load tasks: ' + error.details, 'error');
         }
     }
 
@@ -214,11 +294,34 @@
         try {
             const response = await axios.get(`${API_BASE}/users/${userId}/tasks`);
             // This endpoint returns a list, not a page
-            displayTasksList(response.data);
+            displayTasksList(response.data.content);
         } catch (error) {
-            showAlert('Failed to load tasks: ' + error.message, 'error');
+            showAlert('Failed to load tasks: ' + error.details, 'error');
         }
     }
+
+         async function loadTasksDueToday() {
+        try {
+            const response = await axios.get(`${API_BASE}/tasks/due-today`);
+            const tasks = response.data.content;
+
+            if (tasks.length === 0) {
+                document.getElementById("tasksList").innerHTML = `
+                    <div class="empty-state">
+                        <h3>No tasks due today</h3>
+                        <p>All caught up!</p>
+                    </div>
+                `;
+                document.getElementById("pagination").innerHTML = "";
+                return;
+            }
+
+            displayTasksList(tasks);
+        } catch (error) {
+            showAlert("Failed to load tasks due today: " + (error.response?.data?.details || error.details), "error");
+        }
+    }
+
 
     function displayTasks(data, page) {
         const tasksList = document.getElementById('tasksList');
@@ -240,8 +343,8 @@
                 <p><strong>Project ID:</strong> ${task.projectId} | <strong>Assignee ID:</strong> ${task.assigneeId}</p>
                 ${task.dueDate ? `<p><strong>Due Date:</strong> ${task.dueDate}</p>` : ''}
                 <div class="list-item-actions">
-                    <button class="btn btn-secondary" onclick="editTask(${task.id})">Edit</button>
-                    <button class="btn btn-danger" onclick="deleteTask(${task.id})">Delete</button>
+                    <button class="btn btn-secondary" edit-btn data-id="${task.id}">Edit</button>
+                    <button class="btn btn-danger delete-btn" data-id="${task.id}">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -270,8 +373,9 @@
                 <p><strong>Project ID:</strong> ${task.projectId}</p>
                 ${task.dueDate ? `<p><strong>Due Date:</strong> ${task.dueDate}</p>` : ''}
                 <div class="list-item-actions">
-                    <button class="btn btn-secondary" onclick="editTask(${task.id})">Edit</button>
-                    <button class="btn btn-danger" onclick="deleteTask(${task.id})">Delete</button>
+                    <button class="btn btn-secondary" edit-btn data-id="${task.id}">Edit</button>
+                    <button class="btn btn-danger delete-btn" data-id="${task.id}">Delete</button>
+
                 </div>
             </div>
         `).join('');
@@ -295,6 +399,31 @@
         document.getElementById('taskForm').style.display = 'none';
     }
 
+    function toggleDueToday() {
+        const isChecked = document.getElementById("dueTodayFilter").checked;
+
+        if (isChecked) {
+
+            document.getElementById("projectFilter").value = "";
+            document.getElementById("statusFilter").value = "";
+            document.getElementById("userFilter").value = "";
+
+            currentProjectId = null;
+            currentUserId = null;
+
+            loadTasksDueToday();
+        } else {
+
+            document.getElementById("tasksList").innerHTML = `
+                <div class="empty-state">
+                    <h3>No tasks selected</h3>
+                    <p>There are no tasks due today</p>
+                </div>
+            `;
+            document.getElementById("pagination").innerHTML = "";
+        }
+    }
+
     async function editTask(id) {
         try {
             const response = await axios.get(`${API_BASE}/tasks/${id}`);
@@ -312,7 +441,7 @@
             editingTaskId = id;
             document.getElementById('taskForm').style.display = 'block';
         } catch (error) {
-            showAlert('Failed to load task: ' + error.message, 'error');
+            showAlert('Failed to load task: ' + error.details, 'error');
         }
     }
 
@@ -346,7 +475,7 @@
                 loadTasksByUser();
             }
         } catch (error) {
-            showAlert('Failed to save task: ' + (error.response?.data?.message || error.message), 'error');
+            showAlert('Failed to save task: ' + (error.response?.data?.details || error.details), 'error');
         }
     }
 
@@ -365,7 +494,7 @@
                 loadTasksByUser();
             }
         } catch (error) {
-            showAlert('Failed to delete task: ' + (error.response?.data?.message || error.message), 'error');
+            showAlert('Failed to delete task: ' + (error.response?.data?.details || error.details), 'error');
         }
     }
 
@@ -390,11 +519,11 @@
         pagination.innerHTML = html;
     }
 
-    function showAlert(message, type = 'success') {
+    function showAlert(details, type = 'success') {
         const alertContainer = document.getElementById('alertContainer');
         const alert = document.createElement('div');
         alert.className = `alert alert-${type}`;
-        alert.textContent = message;
+        alert.textContent = details;
         alertContainer.appendChild(alert);
 
         setTimeout(() => alert.remove(), 5000);

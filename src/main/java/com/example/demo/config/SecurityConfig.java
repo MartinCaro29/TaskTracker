@@ -47,14 +47,14 @@ public class SecurityConfig {
                         .loginPage("/login.html")
                         .loginProcessingUrl("/login")
                         .defaultSuccessUrl("/index.html", true)
-                        .failureUrl("/login.html?error=true")
+                        .failureUrl("/login.html?")
                         .permitAll()
                 )
 
-                // ➜ DISABLE BASIC AUTH COMPLETELY to stop popup
+
                 .httpBasic(h -> h.disable())
 
-                // ➜ DISABLE LOGOUT (you said you don’t want logout)
+
                 .logout(logout -> logout.disable());
 
         return http.build();

@@ -1,6 +1,7 @@
 package com.example.demo.services;
 
 import com.example.demo.entities.User;
+import com.example.demo.repositories.AuditLogRepository;
 import com.example.demo.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private AuditLogRepository auditLogRepository;
 
     @InjectMocks
     private UserService userService;

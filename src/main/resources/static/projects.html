@@ -71,6 +71,20 @@
         loadUsers();
     });
 
+    document.addEventListener("click", e => {
+    if (e.target.matches(".delete-btn")) {
+        const id = e.target.dataset.id;
+        deleteProject(id);
+    }
+});
+
+    document.addEventListener("click", e => {
+        if (e.target.matches(".edit-btn")) {
+            const id = e.target.dataset.id;
+            editProject(id);
+        }
+    });
+
     async function loadUsers() {
         try {
             const response = await axios.get(`${API_BASE}/users`, {
@@ -107,8 +121,8 @@
                     <p>${project.description || 'No description'}</p>
                     <p><strong>Owner ID:</strong> ${project.ownerId}</p>
                     <div class="list-item-actions">
-                        <button class="btn btn-secondary" onclick="editProject(${project.id})">Edit</button>
-                        <button class="btn btn-danger" onclick="deleteProject(${project.id})">Delete</button>
+                        <button class="btn btn-secondary" edit-btn data-id="${project.id}">Edit</button>
+                    <button class="btn btn-danger delete-btn" data-id="${project.id}">Delete</button>
                     </div>
                 </div>
             `).join('');
@@ -116,7 +130,7 @@
             renderPagination(data);
             currentPage = page;
         } catch (error) {
-            showAlert('Failed to load projects: ' + error.message, 'error');
+            showAlert('Failed to load projects: ' + error.details, 'error');
         }
     }
 
@@ -147,7 +161,7 @@
             editingProjectId = id;
             document.getElementById('projectForm').style.display = 'block';
         } catch (error) {
-            showAlert('Failed to load project: ' + error.message, 'error');
+            showAlert('Failed to load project: ' + error.details, 'error');
         }
     }
 
@@ -172,7 +186,7 @@
             hideForm();
             loadProjects(currentPage);
         } catch (error) {
-            showAlert('Failed to save project: ' + (error.response?.data?.message || error.message), 'error');
+            showAlert('Failed to save project: ' + (error.response?.data?.details || error.details), 'error');
         }
     }
 
@@ -186,7 +200,7 @@
             showAlert('Project deleted successfully!');
             loadProjects(currentPage);
         } catch (error) {
-            showAlert('Failed to delete project: ' + (error.response?.data?.message || error.message), 'error');
+            showAlert('Failed to delete project: ' + (error.response?.data?.details || error.details), 'error');
         }
     }
 
@@ -211,11 +225,11 @@
         pagination.innerHTML = html;
     }
 
-    function showAlert(message, type = 'success') {
+    function showAlert(details, type = 'success') {
         const alertContainer = document.getElementById('alertContainer');
         const alert = document.createElement('div');
         alert.className = `alert alert-${type}`;
-        alert.textContent = message;
+        alert.textContent = details;
         alertContainer.appendChild(alert);
 
         setTimeout(() => alert.remove(), 5000);

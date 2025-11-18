@@ -3,6 +3,7 @@ package com.example.demo.services;
 import com.example.demo.dtos.ProjectDto;
 import com.example.demo.entities.Project;
 import com.example.demo.entities.User;
+import com.example.demo.repositories.AuditLogRepository;
 import com.example.demo.repositories.ProjectRepository;
 import com.example.demo.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,8 @@ class ProjectServiceTest {
     private ProjectRepository projectRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private AuditLogRepository auditLogRepository;
 
     @InjectMocks
     private ProjectService projectService;

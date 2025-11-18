@@ -25,6 +25,11 @@ public class AuditLog {
         DELETE
     }
 
+    public enum Status {
+        SUCCESS,
+        FAILURE
+    }
+
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
@@ -41,6 +46,11 @@ public class AuditLog {
     @Enumerated(EnumType.STRING)
     @Column(name = "action")
     private Action action;
+
+    @NotNull(message = "Status is required")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private Status status;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -76,6 +86,14 @@ public class AuditLog {
 
     public void setAction(Action action) {
         this.action = action;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -56,11 +56,19 @@ public class TaskService {
     }
 
     public TaskDto createTask(TaskDto dto) {
+
         Project project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new ProjectNotFoundException("Project not found"));
+                .orElseThrow(() -> {
+
+                    auditLogRepository.save(createLog(dto.getProjectId(), AuditLog.Action.CREATE, AuditLog.Status.FAILURE));
+                    return new ProjectNotFoundException("Project not found");
+                });
 
         User assignee = userRepository.findById(dto.getAssigneeId())
-                .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
+                .orElseThrow(() -> {
+                    auditLogRepository.save(createLog(dto.getAssigneeId(), AuditLog.Action.CREATE, AuditLog.Status.FAILURE));
+                    return new UserNotFoundException("Assignee not found");
+                });
 
         Task task = new Task();
         task.setTitle(dto.getTitle());
@@ -73,9 +81,7 @@ public class TaskService {
 
         taskRepository.save(task);
 
-        Long id = task.getId();
-        AuditLog auditLog = createLog(id, AuditLog.Action.CREATE);
-        auditLogRepository.save(auditLog);
+        auditLogRepository.save(createLog(task.getId(), AuditLog.Action.CREATE, AuditLog.Status.SUCCESS));
 
         sendTaskEmail(task, assignee);
 
@@ -94,51 +100,66 @@ public class TaskService {
                 .map(this::convertToDto);
     }
 
-    public TaskDto updateTask(Long id, TaskDto dto) {
-        User assignee = null;
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+    public Page<TaskDto> getTasksDueToday(int page, int size){
+        Pageable pageable = PageRequest.of(page,size);
+        return taskRepository.findTasksDueToday(pageable)
+                .map(this::convertToDto);
+    }
 
+    public TaskDto updateTask(Long id, TaskDto dto) {
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> {
+                    auditLogRepository.save(createLog(id, AuditLog.Action.UPDATE, AuditLog.Status.FAILURE));
+                    return new TaskNotFoundException("Task not found");
+                });
+
+        User assignee = null;
+
+        if (dto.getAssigneeId() != null) {
+            assignee = userRepository.findById(dto.getAssigneeId())
+                    .orElseThrow(() -> {
+                        auditLogRepository.save(createLog(id, AuditLog.Action.UPDATE, AuditLog.Status.FAILURE));
+                        return new UserNotFoundException("Assignee not found");
+                    });
+        }
 
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
         task.setPriority(dto.getPriority());
         task.setStatus(dto.getStatus());
         task.setDueDate(dto.getDueDate());
-
-        if (dto.getAssigneeId() != null) {
-            assignee = userRepository.findById(dto.getAssigneeId())
-                    .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
-            task.setAssignee(assignee);
-        }
+        if (assignee != null) task.setAssignee(assignee);
 
         Task updated = taskRepository.save(task);
 
-        AuditLog auditLog = createLog(id, AuditLog.Action.UPDATE);
-        auditLogRepository.save(auditLog);
+        auditLogRepository.save(createLog(id, AuditLog.Action.UPDATE, AuditLog.Status.SUCCESS));
 
-        if(assignee != null) sendTaskEmail(task, assignee);
+        if (assignee != null) sendTaskEmail(task, assignee);
 
         return convertToDto(updated);
     }
 
+
     public void deleteTask(Long id) {
         if (!taskRepository.existsById(id)) {
+            AuditLog auditLog = createLog(id, AuditLog.Action.DELETE, AuditLog.Status.FAILURE);
+            auditLogRepository.save(auditLog);
             throw new TaskNotFoundException("Task not found with id: " + id);
         }
         taskRepository.deleteById(id);
 
-        AuditLog auditLog = createLog(id, AuditLog.Action.DELETE);
+        AuditLog auditLog = createLog(id, AuditLog.Action.DELETE, AuditLog.Status.SUCCESS);
         auditLogRepository.save(auditLog);
     }
 
-    public List<TaskDto> getTasksByUser(Long userId) {
+    public Page<TaskDto> getTasksByUser(Long userId,int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return taskRepository.findByAssignee(user)
-                .stream()
-                .map(this::convertToDto)
-                .toList();
+        return taskRepository.findByAssignee(user, pageable)
+                .map(this::convertToDto);
     }
 
     private TaskDto convertToDto(Task task) {
@@ -155,11 +176,12 @@ public class TaskService {
         );
     }
 
-    private AuditLog createLog(Long entityId, AuditLog.Action action){
+    private AuditLog createLog(Long entityId, AuditLog.Action action, AuditLog.Status status){
         AuditLog auditLog = new AuditLog();
         auditLog.setEntityId(entityId);
         auditLog.setEntityType(AuditLog.EntityType.TASK);
         auditLog.setAction(action);
+        auditLog.setStatus(status);
 
         return auditLog;
     }

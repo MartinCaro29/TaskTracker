@@ -43,12 +43,22 @@
             msg.innerHTML = "<div class='msg success'>Account created! Now you can log in.</div>";
         } catch (err) {
             const data = err.response?.data;
+            console.log("SERVER ERROR:", data); // for debugging
 
-            if (data?.errors) {
-                // Join all validation messages
-                msg.innerHTML = "<div class='msg error'>" + data.errors.join("<br>") + "</div>";
+            if (Array.isArray(data?.details)) {
+                // Validation errors (list)
+                msg.innerHTML = `
+                    <div class="msg error">
+                        ${data.details.map(e => `<div>${e}</div>`).join("")}
+                    </div>
+                `;
+            } else if (data?.message) {
+                // Other errors
+                msg.innerHTML = `
+                    <div class="msg error">${data.message}</div>
+                `;
             } else {
-                msg.innerHTML = "<div class='msg error'>Error: " + (data?.message || "Unknown error") + "</div>";
+                msg.innerHTML = `<div class="msg error">Unknown error</div>`;
             }
         }
 

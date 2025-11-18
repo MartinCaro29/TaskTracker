@@ -5,6 +5,7 @@ import com.example.demo.entities.Task;
 import com.example.demo.entities.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.Pageable;
@@ -80,18 +81,19 @@ class TaskRepositoryTest {
 
     @Test
     void testFindByAssignee() {
-        List<Task> tasks = taskRepository.findByAssignee(user);
+        var page = taskRepository.findByAssignee(user, Pageable.unpaged());
 
-        assertThat(tasks).hasSize(2);
-        assertThat(tasks).allMatch(t -> t.getAssignee().equals(user));
+        assertThat(page.getContent()).hasSize(2);
+        assertThat(page.getContent())
+                .allMatch(task -> task.getAssignee().equals(user));
     }
 
     @Test
     void testFindTasksDueToday() {
-        List<Task> dueToday = taskRepository.findTasksDueToday();
+        var page = taskRepository.findTasksDueToday(Pageable.unpaged());
 
-        assertThat(dueToday).hasSize(1);
-        assertThat(dueToday.get(0).getTitle()).isEqualTo("Task 1");
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getTitle()).isEqualTo("Task 1");
     }
 
     @Test

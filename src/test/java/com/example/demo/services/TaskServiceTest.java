@@ -7,6 +7,7 @@ import com.example.demo.entities.User;
 import com.example.demo.exceptions.ProjectNotFoundException;
 import com.example.demo.exceptions.TaskNotFoundException;
 import com.example.demo.exceptions.UserNotFoundException;
+import com.example.demo.repositories.AuditLogRepository;
 import com.example.demo.repositories.ProjectRepository;
 import com.example.demo.repositories.TaskRepository;
 import com.example.demo.repositories.UserRepository;
@@ -16,6 +17,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,6 +38,8 @@ class TaskServiceTest {
     private UserRepository userRepository;
     @Mock
     private ProjectRepository projectRepository;
+    @Mock
+    private AuditLogRepository auditLogRepository;
 
     @Mock
     private EmailService emailService;
@@ -192,18 +199,25 @@ class TaskServiceTest {
 
     @Test
     void testGetTasksByUser_Success() {
+        Pageable pageable = PageRequest.of(0, 10);
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(assignee));
-        when(taskRepository.findByAssignee(assignee)).thenReturn(List.of(task));
+        when(taskRepository.findByAssignee(assignee, pageable))
+                .thenReturn(new PageImpl<>(List.of(task)));
 
-        var result = taskService.getTasksByUser(1L);
+        Page<TaskDto> result = taskService.getTasksByUser(1L, 0, 10);
 
-        assertEquals(1, result.size());
-        assertEquals("Database implementation", result.get(0).getTitle());
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Database implementation", result.getContent().get(0).getTitle());
     }
+
 
     @Test
     void testGetTasksByUser_UserNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(UserNotFoundException.class, () -> taskService.getTasksByUser(99L));
+
+        assertThrows(UserNotFoundException.class,
+                () -> taskService.getTasksByUser(99L, 0, 10));
     }
+
 }

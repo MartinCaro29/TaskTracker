@@ -1,14 +1,15 @@
 package com.example.demo.entities;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ErrorResponse {
 
     private LocalDateTime timestamp;
     private String message;
-    private String details;
+    private List<String> details;
 
-    public ErrorResponse(LocalDateTime timestamp, String message, String details) {
+    public ErrorResponse(LocalDateTime timestamp, String message, List<String> details) {
         this.timestamp = timestamp;
         this.message = message;
         this.details = details;
@@ -22,7 +23,7 @@ public class ErrorResponse {
         return message;
     }
 
-    public String getDetails() {
+    public List<String> getDetails() {
         return details;
     }
 }

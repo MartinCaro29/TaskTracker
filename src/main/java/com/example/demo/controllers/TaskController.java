@@ -57,14 +57,17 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/due-today")
-    public ResponseEntity<List<TaskDto>> getTasksDueToday() {
-        // assuming you’ll add a service method returning List<TaskDto> later
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<Page<TaskDto>> getTasksDueToday(@RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size) {
+        Page<TaskDto> tasks = taskService.getTasksDueToday(page, size);
+        return ResponseEntity.ok(tasks);
     }
 
     @GetMapping("/users/{userId}/tasks")
-    public ResponseEntity<List<TaskDto>> getTasksByUser(@PathVariable Long userId) {
-        List<TaskDto> tasks = taskService.getTasksByUser(userId);
+    public ResponseEntity<Page<TaskDto>> getTasksByUser(@PathVariable Long userId,
+                                                        @RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "10") int size){
+        Page<TaskDto> tasks = taskService.getTasksByUser(userId, page, size);
         return ResponseEntity.ok(tasks);
     }
 }

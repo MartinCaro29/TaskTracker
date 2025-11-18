@@ -48,6 +48,7 @@ public class UserService {
         auditLog.setEntityId(savedUser.getId());
         auditLog.setEntityType(AuditLog.EntityType.USER);
         auditLog.setAction(AuditLog.Action.CREATE);
+        auditLog.setStatus(AuditLog.Status.SUCCESS);
         auditLogRepository.save(auditLog);
 
         return new UserDto(savedUser.getId(), savedUser.getUsername(), savedUser.getEmail());
