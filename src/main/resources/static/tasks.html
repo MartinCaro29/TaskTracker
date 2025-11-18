@@ -23,9 +23,61 @@
 <div class="container">
     <div id="alertContainer"></div>
 
+
+
     <div class="card">
         <h2>Tasks Management</h2>
         <button class="btn btn-primary" onclick="showCreateForm()">+ Create New Task</button>
+    </div>
+
+    <!-- Create/Edit Task Form -->
+    <div id="taskForm" class="card" style="display: none; margin-top: 20px;">
+        <h3 id="formTitle">Create New Task</h3>
+        <form onsubmit="saveTask(event)">
+            <input type="hidden" id="taskId">
+            <div class="form-group">
+                <label>Title *</label>
+                <input type="text" id="taskTitle" required minlength="3" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="taskDescription"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Project *</label>
+                <select id="taskProject" required>
+                    <option value="">Select a project</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assignee (User) *</label>
+                <select id="taskAssignee" required>
+                    <option value="">Select a user</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status *</label>
+                <select id="taskStatus" required>
+                    <option value="TODO">To Do</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Priority *</label>
+                <select id="taskPriority" required>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="taskDueDate">
+            </div>
+            <button type="submit" class="btn btn-success">Save Task</button>
+            <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+        </form>
     </div>
 
     <!-- Filter Bar -->
@@ -83,55 +135,7 @@
 
     </div>
 
-    <!-- Create/Edit Task Form -->
-    <div id="taskForm" class="card" style="display: none; margin-top: 20px;">
-        <h3 id="formTitle">Create New Task</h3>
-        <form onsubmit="saveTask(event)">
-            <input type="hidden" id="taskId">
-            <div class="form-group">
-                <label>Title *</label>
-                <input type="text" id="taskTitle" required minlength="3" maxlength="100">
-            </div>
-            <div class="form-group">
-                <label>Description</label>
-                <textarea id="taskDescription"></textarea>
-            </div>
-            <div class="form-group">
-                <label>Project *</label>
-                <select id="taskProject" required>
-                    <option value="">Select a project</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Assignee (User) *</label>
-                <select id="taskAssignee" required>
-                    <option value="">Select a user</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Status *</label>
-                <select id="taskStatus" required>
-                    <option value="TODO">To Do</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Priority *</label>
-                <select id="taskPriority" required>
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Due Date</label>
-                <input type="date" id="taskDueDate">
-            </div>
-            <button type="submit" class="btn btn-success">Save Task</button>
-            <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-        </form>
-    </div>
+
 
     <!-- Tasks List -->
     <div id="tasksList" style="margin-top: 20px;">
@@ -292,9 +296,11 @@ function applyUserFilter() {
         document.getElementById('statusFilter').value = '';
 
         try {
-            const response = await axios.get(`${API_BASE}/users/${userId}/tasks`);
+
+            const params = { page, size: 10 };
+            const response = await axios.get(`${API_BASE}/users/${userId}/tasks`, { params });
             // This endpoint returns a list, not a page
-            displayTasksList(response.data.content);
+            displayTasks(response.data, page);
         } catch (error) {
             showAlert('Failed to load tasks: ' + error.details, 'error');
         }
@@ -417,7 +423,7 @@ function applyUserFilter() {
             document.getElementById("tasksList").innerHTML = `
                 <div class="empty-state">
                     <h3>No tasks selected</h3>
-                    <p>There are no tasks due today</p>
+                    <p>Select a project or user filter, or create a new task</p>
                 </div>
             `;
             document.getElementById("pagination").innerHTML = "";
